@@ -20,7 +20,7 @@
 
 <body class="font-sans antialiased">
     {{-- @inertia --}}
-    <h1>Tumi valo acho ??</h1>
+    <h1>Hi Tumi valo acho ??</h1>
 </body>
 
 </html>
