@@ -1,0 +1,48 @@
+# .github/workflows/deploy.yml
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main # ডিপ্লয় ট্রিগার করার জন্য ব্রাঞ্চ
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install SSH key
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Deploy to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USERNAME: ${{ secrets.VPS_USERNAME }}
+          VPS_PROJECT_PATH: ${{ secrets.VPS_PROJECT_PATH }}
+        run: |
+          ssh -o StrictHostKeyChecking=no $VPS_USERNAME@$VPS_HOST << 'EOF'
+            cd $VPS_PROJECT_PATH
+
+            # কোড টেনে আনা
+            git pull origin main
+
+            # Composer ডিপেন্ডেন্সি ইন্সটল করা
+            composer install --no-interaction --prefer-dist --optimize-autoloader
+
+            # npm ডিপেন্ডেন্সি এবং অ্যাসেট বিল্ড করা
+            npm install
+            npm run production
+
+            # ডাটাবেজ মাইগ্রেশন চালানো
+            php artisan migrate --force
+
+            # কনফিগারেশন ক্যাশ করা
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+          EOF
